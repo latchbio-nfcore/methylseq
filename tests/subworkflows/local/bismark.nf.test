@@ -1,0 +1,34 @@
+nextflow_workflow {
+
+    name "Test Workflow BISMARK"
+    script "subworkflows/local/bismark.nf"
+    workflow "BISMARK"
+
+    test("Should run without failures") {
+
+        when {
+            params {
+                // define parameters here. Example:
+                // outdir = "tests/results"
+            }
+            workflow {
+                """
+                input[0] = [ [ id:'test', single_end:true ], // meta map
+                    [ file("https://github.com/nf-core/test-datasets/raw/methylseq/testdata/SRR389222_sub1.fastq.gz", checkIfExists: true) ]]
+                // FIXME Upload this somewhere, just moved it for the POC
+                // https://github.com/Emiller88/test-datasets/commit/c1fa15a704f22fe631d7d2f9faffffa61c8fe783
+                input[1] = file("$baseDir/.nf-test/indexes/BismarkIndex/")
+                input[2] = true
+                input[3] = false
+                """
+            }
+        }
+
+        then {
+            assert workflow.success
+            assert snapshot(workflow.out).match()
+        }
+
+    }
+
+}

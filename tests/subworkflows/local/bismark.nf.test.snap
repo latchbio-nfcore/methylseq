@@ -1,0 +1,97 @@
+{
+    "Should run without failures": {
+        "content": [
+            {
+                "0": [
+                    [
+                        {
+                            "id": "test",
+                            "single_end": true
+                        },
+                        "test.sorted.bam:md5,cb4e72f954715c9bcb09bd56f463db82"
+                    ]
+                ],
+                "1": [
+                    [
+                        {
+                            "id": "test",
+                            "single_end": true
+                        },
+                        "test.sorted.bam:md5,cb4e72f954715c9bcb09bd56f463db82"
+                    ]
+                ],
+                "2": [
+                    [
+                        "SRR389222_sub1_bismark_bt2.M-bias.txt:md5,d1083f305a444487fe977362a0174159"
+                    ],
+                    [
+                        "SRR389222_sub1_bismark_bt2_SE_report.html:md5,2079b95429b86412ed1626f9426a6635"
+                    ],
+                    [
+                        "SRR389222_sub1_bismark_bt2_SE_report.txt:md5,0a9f2cc9c14a174b179aedadf13cfecc"
+                    ],
+                    [
+                        "SRR389222_sub1_bismark_bt2_splitting_report.txt:md5,f59eac7a30ec7f1f690aac921a5591c0"
+                    ],
+                    [
+                        "bismark_summary_report.html:md5,b2b1c7eab5b8991ed1ac927548edd77c",
+                        "bismark_summary_report.txt:md5,13f7305cf7003f54e0eba22f3590889a"
+                    ]
+                ],
+                "3": [
+                    "versions.yml:md5,75082556508926250285e70e1932fa74",
+                    "versions.yml:md5,8c77803faf4f7ba8964db02d01c96799",
+                    "versions.yml:md5,06879deac306872457253bf41db6ba7f",
+                    "versions.yml:md5,66f7b51aeee12e293634cb74fea2f091",
+                    "versions.yml:md5,bff10f08bf0238c3303ef33749b7a93c",
+                    "versions.yml:md5,701e44c4be43ad049c16c7fc8686a21d"
+                ],
+                "bam": [
+                    [
+                        {
+                            "id": "test",
+                            "single_end": true
+                        },
+                        "test.sorted.bam:md5,cb4e72f954715c9bcb09bd56f463db82"
+                    ]
+                ],
+                "dedup": [
+                    [
+                        {
+                            "id": "test",
+                            "single_end": true
+                        },
+                        "test.sorted.bam:md5,cb4e72f954715c9bcb09bd56f463db82"
+                    ]
+                ],
+                "mqc": [
+                    [
+                        "SRR389222_sub1_bismark_bt2.M-bias.txt:md5,d1083f305a444487fe977362a0174159"
+                    ],
+                    [
+                        "SRR389222_sub1_bismark_bt2_SE_report.html:md5,2079b95429b86412ed1626f9426a6635"
+                    ],
+                    [
+                        "SRR389222_sub1_bismark_bt2_SE_report.txt:md5,0a9f2cc9c14a174b179aedadf13cfecc"
+                    ],
+                    [
+                        "SRR389222_sub1_bismark_bt2_splitting_report.txt:md5,f59eac7a30ec7f1f690aac921a5591c0"
+                    ],
+                    [
+                        "bismark_summary_report.html:md5,b2b1c7eab5b8991ed1ac927548edd77c",
+                        "bismark_summary_report.txt:md5,13f7305cf7003f54e0eba22f3590889a"
+                    ]
+                ],
+                "versions": [
+                    "versions.yml:md5,75082556508926250285e70e1932fa74",
+                    "versions.yml:md5,8c77803faf4f7ba8964db02d01c96799",
+                    "versions.yml:md5,06879deac306872457253bf41db6ba7f",
+                    "versions.yml:md5,66f7b51aeee12e293634cb74fea2f091",
+                    "versions.yml:md5,bff10f08bf0238c3303ef33749b7a93c",
+                    "versions.yml:md5,701e44c4be43ad049c16c7fc8686a21d"
+                ]
+            }
+        ],
+        "timestamp": "2023-08-25T02:54:46+0000"
+    }
+}
