@@ -1,0 +1,36 @@
+nextflow_workflow {
+
+    name "Test Workflow BISMARK"
+    script "../main.nf"
+    workflow "BISMARK"
+
+    tag "subworkflows/local"
+    tag "subworkflows/bismark"
+
+    test("Bismark") {
+
+        when {
+            params {
+                // define parameters here. Example:
+                // outdir = "tests/results"
+            }
+            workflow {
+                """
+                input[0] = file("test-file.txt")
+                input[1] = file("test-file.txt")
+                input[2] = file("test-file.txt")
+                input[3] = file("test-file.txt")
+                """
+            }
+        }
+
+        then {
+            assertAll(
+                { assert workflow.success },
+                { assert snapshot(workflow.out).match() }
+          )
+        }
+
+    }
+
+}

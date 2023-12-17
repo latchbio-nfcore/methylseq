@@ -35,15 +35,15 @@ ch_multiqc_custom_methods_description = params.multiqc_methods_description ? fil
 //
 // SUBWORKFLOWS: Consisting of a mix of local and nf-core/modules
 //
-include { PREPARE_GENOME } from '../subworkflows/local/prepare_genome'
+include { PREPARE_GENOME } from '../subworkflows/local/prepare_genome/main'
 
 // Aligner: bismark or bismark_hisat
 if( params.aligner =~ /bismark/ ){
-    include { BISMARK } from '../subworkflows/local/bismark'
+    include { BISMARK } from '../subworkflows/local/bismark/main'
 }
 // Aligner: bwameth
 else if ( params.aligner == 'bwameth' ){
-    include { BWAMETH } from '../subworkflows/local/bwameth'
+    include { BWAMETH } from '../subworkflows/local/bwameth/main'
 }
 
 /*

@@ -1,0 +1,57 @@
+nextflow_workflow {
+
+    name "Test Workflow PREPARE_GENOME"
+    script "../main.nf"
+    workflow "PREPARE_GENOME"
+
+    tag "subworkflows/local"
+    tag "prepare_genome"
+    tag "bismark/genomepreparation"
+    tag "bwameth/index"
+    tag "samtools/faidx"
+
+    test("Bismark") {
+
+        when {
+            params {
+                aligner = "bismark"
+            }
+            workflow {
+                """
+                
+                """
+            }
+        }
+
+        then {
+            assertAll(
+                { assert workflow.success },
+                { assert snapshot(workflow.out).match() }
+          )
+        }
+
+    }
+
+    test("Bwameth") {
+
+        when {
+            params {
+                aligner = "bwameth"
+            }
+            workflow {
+                """
+                
+                """
+            }
+        }
+
+        then {
+            assertAll(
+                { assert workflow.success },
+                { assert snapshot(workflow.out).match() }
+          )
+        }
+
+    }
+
+}

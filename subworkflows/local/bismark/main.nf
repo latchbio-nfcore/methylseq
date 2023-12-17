@@ -1,14 +1,14 @@
 /*
  * bismark subworkflow
  */
-include { BISMARK_ALIGN                               } from '../../modules/nf-core/bismark/align/main'
-include { SAMTOOLS_SORT as SAMTOOLS_SORT_ALIGNED      } from '../../modules/nf-core/samtools/sort/main'
-include { SAMTOOLS_SORT as SAMTOOLS_SORT_DEDUPLICATED } from '../../modules/nf-core/samtools/sort/main'
-include { BISMARK_DEDUPLICATE                         } from '../../modules/nf-core/bismark/deduplicate/main'
-include { BISMARK_METHYLATIONEXTRACTOR                } from '../../modules/nf-core/bismark/methylationextractor/main'
-include { BISMARK_COVERAGE2CYTOSINE                   } from '../../modules/nf-core/bismark/coverage2cytosine/main'
-include { BISMARK_REPORT                              } from '../../modules/nf-core/bismark/report/main'
-include { BISMARK_SUMMARY                             } from '../../modules/nf-core/bismark/summary/main'
+include { BISMARK_ALIGN                               } from '../../../modules/nf-core/bismark/align/main'
+include { SAMTOOLS_SORT as SAMTOOLS_SORT_ALIGNED      } from '../../../modules/nf-core/samtools/sort/main'
+include { SAMTOOLS_SORT as SAMTOOLS_SORT_DEDUPLICATED } from '../../../modules/nf-core/samtools/sort/main'
+include { BISMARK_DEDUPLICATE                         } from '../../../modules/nf-core/bismark/deduplicate/main'
+include { BISMARK_METHYLATIONEXTRACTOR                } from '../../../modules/nf-core/bismark/methylationextractor/main'
+include { BISMARK_COVERAGE2CYTOSINE                   } from '../../../modules/nf-core/bismark/coverage2cytosine/main'
+include { BISMARK_REPORT                              } from '../../../modules/nf-core/bismark/report/main'
+include { BISMARK_SUMMARY                             } from '../../../modules/nf-core/bismark/summary/main'
 
 workflow BISMARK {
     take:
