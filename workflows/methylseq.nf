@@ -44,15 +44,15 @@ workflow METHYLSEQ {
     ch_versions = Channel.empty()
     ch_multiqc_files = Channel.empty()
 
-    //
-    // SUBWORKFLOW: Prepare any required reference genome indices
-    //
+    /*
+     * SUBWORKFLOW: Prepare any required reference genome indices
+     */
     PREPARE_GENOME()
     ch_versions = ch_versions.mix(PREPARE_GENOME.out.versions)
 
-    //
-    // MODULE: Concatenate FastQ files from same sample if required
-    //
+    /*
+     * MODULE: Concatenate FastQ files from same sample if required
+     */
     CAT_FASTQ (
         ch_samplesheet.multiple
     )
@@ -61,9 +61,9 @@ workflow METHYLSEQ {
     .set { ch_cat_fastq }
     ch_versions = ch_versions.mix(CAT_FASTQ.out.versions.first())
 
-    //
-    // MODULE: Run FastQC
-    //
+    /*
+     * MODULE: Run FastQC
+     */
     FASTQC (
         ch_cat_fastq
     )
@@ -83,16 +83,15 @@ workflow METHYLSEQ {
 
 
 
-    /*
-     * SUBWORKFLOW: Align reads, deduplicate and extract methylation with Bismark
-     */
+    //
+    // SUBWORKFLOW: Align reads, deduplicate and extract methylation with Bismark
+    //
 
     // Aligner: bismark or bismark_hisat
     if( params.aligner =~ /bismark/ ){
-
-        /*
-         * Run Bismark alignment + downstream processing
-         */
+        //
+        // Run Bismark alignment + downstream processing
+        //
         BISMARK (
             reads,
             PREPARE_GENOME.out.bismark_index,
@@ -120,18 +119,18 @@ workflow METHYLSEQ {
         ch_aligner_mqc = BWAMETH.out.mqc
     }
 
-    /*
-     * MODULE: Qualimap BamQC
-     */
+    //
+    // MODULE: Qualimap BamQC
+    //
     QUALIMAP_BAMQC (
         ch_dedup,
         params.bamqc_regions_file ? Channel.fromPath( params.bamqc_regions_file, checkIfExists: true ).toList() : []
     )
     ch_versions = ch_versions.mix(QUALIMAP_BAMQC.out.versions.first())
 
-    /*
-     * MODULE: Run Preseq
-     */
+    //
+    // MODULE: Run Preseq
+    //
     PRESEQ_LCEXTRAP (
         ch_bam
     )
