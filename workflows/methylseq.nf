@@ -17,11 +17,9 @@ else if ( params.aligner == 'bwameth' ){
     include { BWAMETH } from '../subworkflows/local/bwameth'
 }
 
-include { MULTIQC                     } from '../modules/nf-core/multiqc/main'
-include { CUSTOM_DUMPSOFTWAREVERSIONS } from '../modules/nf-core/custom/dumpsoftwareversions/main'
-include { TRIMGALORE                  } from '../modules/nf-core/trimgalore/main'
-include { QUALIMAP_BAMQC              } from '../modules/nf-core/qualimap/bamqc/main'
-include { PRESEQ_LCEXTRAP             } from '../modules/nf-core/preseq/lcextrap/main'
+include { TRIMGALORE             } from '../modules/nf-core/trimgalore/main'
+include { QUALIMAP_BAMQC         } from '../modules/nf-core/qualimap/bamqc/main'
+include { PRESEQ_LCEXTRAP        } from '../modules/nf-core/preseq/lcextrap/main'
 include { MULTIQC                } from '../modules/nf-core/multiqc/main'
 include { paramsSummaryMap       } from 'plugin/nf-validation'
 include { paramsSummaryMultiqc   } from '../subworkflows/nf-core/utils_nfcore_pipeline'
@@ -135,10 +133,6 @@ workflow METHYLSEQ {
         ch_bam
     )
     ch_versions = ch_versions.mix(PRESEQ_LCEXTRAP.out.versions.first())
-
-    CUSTOM_DUMPSOFTWAREVERSIONS (
-        ch_versions.unique().collectFile(name: 'collated_versions.yml')
-    )
 
     //
     // Collate and save software versions

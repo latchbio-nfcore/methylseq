@@ -106,7 +106,7 @@ workflow PIPELINE_INITIALISATION {
             multiple: fastq.size() > 1
             return [ meta, fastq.flatten() ]
         }
-        .set { ch_fastq }
+        .set { ch_samplesheet }
 
     emit:
     samplesheet = ch_samplesheet
