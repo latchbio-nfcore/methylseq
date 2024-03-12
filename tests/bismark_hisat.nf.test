@@ -1,10 +1,12 @@
 nextflow_pipeline {
 
-    name "Test Workflow main.nf"
-    script "main.nf"
+    name "Test pipeline with Bismark Hisat"
+    script "../main.nf"
+    config "../conf/test.config"
 
     tag "bismark_hisat"
     tag "pipeline"
+
 
     test("Bismark Hisat Single-End") {
         when {

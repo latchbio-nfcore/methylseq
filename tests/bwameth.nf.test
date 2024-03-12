@@ -1,10 +1,12 @@
 nextflow_pipeline {
 
-    name "Test Workflow main.nf"
-    script "main.nf"
+    name "Test pipelines with BWAmeth"
+    script "../main.nf"
+    config "../conf/test.config"
 
     tag "bwameth"
     tag "pipeline"
+
 
     test("Bwameth Single-End") {
         when {
