@@ -9,6 +9,9 @@ include { SAMTOOLS_FAIDX              } from '../../modules/nf-core/samtools/fai
 
 workflow PREPARE_GENOME {
 
+    take:
+    fasta
+
     main:
     ch_versions      = Channel.empty()
     ch_fasta         = Channel.empty()
@@ -18,7 +21,7 @@ workflow PREPARE_GENOME {
 
     // FASTA, if supplied
     if (params.fasta) {
-        ch_fasta = Channel.value(file(params.fasta))
+        ch_fasta = Channel.value(file(fasta))
     }
 
     // Aligner: bismark or bismark_hisat
@@ -64,7 +67,7 @@ workflow PREPARE_GENOME {
         if (params.fasta_index) {
             ch_fasta_index = Channel.value(file(params.fasta_index))
         } else {
-            SAMTOOLS_FAIDX([[:], ch_fasta])
+            SAMTOOLS_FAIDX([[:], file(params.fasta)])
             ch_fasta_index = SAMTOOLS_FAIDX.out.fai.map{ return(it[1])}
             ch_versions = ch_versions.mix(SAMTOOLS_FAIDX.out.versions)
         }

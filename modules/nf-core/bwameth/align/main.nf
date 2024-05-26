@@ -5,7 +5,7 @@ process BWAMETH_ALIGN {
     conda "bioconda::bwameth=0.2.2"
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
         'https://depot.galaxyproject.org/singularity/bwameth:0.2.2--py_1' :
-        'biocontainers/bwameth:0.2.2--py_1' }"
+        'biocontainers/bwameth:0.2.7--pyh7cba7a3_0' }"
 
     input:
     tuple val(meta), path(reads)
