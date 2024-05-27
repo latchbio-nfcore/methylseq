@@ -44,7 +44,7 @@ workflow METHYLSEQ {
     //
     // SUBWORKFLOW: Prepare any required reference genome indices
     //
-    PREPARE_GENOME()
+    PREPARE_GENOME(file(params.fasta))
     ch_versions = ch_versions.mix(PREPARE_GENOME.out.versions)
 
     //
