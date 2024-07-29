@@ -48,9 +48,11 @@ def initialize() -> str:
     return resp.json()["name"]
 
 
-@dataclass
+@dataclass(frozen=True)
 class Sample:
-    sample: str
+    sample: typing.Annotated[
+        str, FlyteAnnotation({"rules": [{"regex": r"^[^\s]+$", "message": "Sample name cannot contain spaces."}]})
+    ]
     fastq_1: LatchFile
     fastq_2: typing.Optional[LatchFile]
 
