@@ -15,6 +15,7 @@ NextflowMetadata(
         cpus=4,
         memory=8,
         storage_gib=100,
+        storage_expiration_hours=12,
     ),
     log_dir=LatchDir("latch:///methylseq-logs"),
 )
