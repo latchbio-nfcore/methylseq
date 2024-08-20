@@ -10,5 +10,5 @@ testing*
 .nf-test
 .nf-test.log
 test-datasets/
-.latch
+.latch/.logs
 Desktop
