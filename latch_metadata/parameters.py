@@ -1,10 +1,17 @@
-import typing
 from dataclasses import dataclass
 from enum import Enum
+from typing import List, Optional
 
-from latch.types.directory import LatchOutputDir
+from latch.types.directory import LatchDir, LatchOutputDir
 from latch.types.file import LatchFile
-from latch.types.metadata import FlowBase, NextflowParameter, Params, Section
+from latch.types.metadata import (
+    FlowBase,
+    Fork,
+    ForkBranch,
+    NextflowParameter,
+    Params,
+    Section,
+)
 
 # Import these into your `__init__.py` file:
 #
@@ -15,7 +22,7 @@ from latch.types.metadata import FlowBase, NextflowParameter, Params, Section
 class Sample:
     sample: str
     fastq_1: LatchFile
-    fastq_2: typing.Optional[LatchFile]
+    fastq_2: Optional[LatchFile]
 
 
 class Genome(Enum):
@@ -24,70 +31,139 @@ class Genome(Enum):
     mm10 = "mm10"
 
 
-flow: typing.List[FlowBase] = [
-    Section("Input / Output", Params("input", "outdir")),
-    Params("genome"),
-    Section("Bismark Alignment Options", Params("comprehensive", "non_directional", "cytosine_report")),
+flow: List[FlowBase] = [
     Section(
-        "Adapter Trimming", Params("clip_r1", "clip_r2", "three_prime_clip_r1", "three_prime_clip_r2", "nextseq_trim")
+        "Input / Output",
+        Params(
+            "input",
+            "run_name",
+            "outdir",
+        ),
     ),
-    Section("Save Intermediate Files", Params("save_reference", "save_align_intermeds", "unmapped", "save_trimmed")),
+    Section(
+        "Reference Genome",
+        Fork(
+            "genome_source",
+            "",
+            custom=ForkBranch(
+                "Custom Reference",
+                Params(
+                    "fasta",
+                    "fasta_index",
+                    "bismark_index",
+                ),
+            ),
+            igenome=ForkBranch(
+                "iGenome Reference Genome",
+                Params(
+                    "genome",
+                ),
+            ),
+        ),
+    ),
+    Section(
+        "Bismark Alignment Options",
+        Params("comprehensive", "non_directional", "cytosine_report"),
+    ),
+    Section(
+        "Adapter Trimming",
+        Params(
+            "clip_r1",
+            "clip_r2",
+            "three_prime_clip_r1",
+            "three_prime_clip_r2",
+            "nextseq_trim",
+        ),
+    ),
+    Section(
+        "Save Intermediate Files",
+        Params("save_reference", "save_align_intermeds", "unmapped", "save_trimmed"),
+    ),
 ]
 
 
 generated_parameters = {
     "input": NextflowParameter(
-        type=typing.List[Sample], samplesheet=True, samplesheet_type="csv", display_name="Samplesheet"
+        type=List[Sample],
+        samplesheet=True,
+        samplesheet_type="csv",
+        display_name="Samplesheet",
+    ),
+    "run_name": NextflowParameter(
+        type=str,
+        display_name="Run Name",
+        description="Name of run.",
+        batch_table_column=True,
     ),
     "outdir": NextflowParameter(
         type=LatchOutputDir,
         section_title=None,
         display_name="Output Directory",
-        description="The output directory where the results will be saved",
+        description="The output directory where the results will be saved.",
     ),
     # Reference Genome
-    # todo(ayush): fork here to allow using custom genomes
+    "genome_source": NextflowParameter(),
     "genome": NextflowParameter(
         type=Genome,
         default=Genome.hg38,
         display_name="Genome",
+        description="iGenome genome reference.",
+    ),
+    "fasta": NextflowParameter(
+        type=Optional[LatchFile],
+        default=None,
+        display_name="FASTA Reference",
+        description="FASTA genome file (Only .fa, .fa.gz, .fasta or .fasta.gz accepted)",
+    ),
+    "bismark_index": NextflowParameter(
+        type=Optional[LatchDir],
+        default=None,
+        display_name="Bismark Index",
+        description="Directory containing a Bismark reference index.",
     ),
     # Alignment
     "comprehensive": NextflowParameter(
         type=bool,
         default=False,
-        display_name="Output information for all cytosine contexts.",
+        display_name="Comprehensive",
+        description="Output information for all cytosine contexts.",
     ),
     "non_directional": NextflowParameter(
         type=bool,
         default=False,
-        display_name="Run alignment against all four possible strands.",
+        display_name="Non Directional",
+        description="Run alignment against all four possible strands.",
     ),
     "cytosine_report": NextflowParameter(
         type=bool,
         default=False,
-        display_name="Output stranded cytosine report, following Bismark's bismark_methylation_extractor step.",
+        display_name="Cytosine Report",
+        description="Output stranded cytosine report, following Bismark's bismark_methylation_extractor step.",
     ),
     # 'Save intermediate files'
     "save_reference": NextflowParameter(
         type=bool,
         default=False,
-        display_name="Save reference(s) to results directory",
+        display_name="Save Reference",
+        description="Save reference(s) to results directory",
     ),
     "save_align_intermeds": NextflowParameter(
         type=bool,
         default=False,
-        display_name="Save aligned intermediates to results directory",
+        display_name="Save Align Intermeds",
+        description="Save aligned intermediates to results directory",
     ),
     "unmapped": NextflowParameter(
         type=bool,
         default=False,
-        display_name="Save unmapped reads to FastQ files",
+        display_name="Unmapped",
+        description="Save unmapped reads to FastQ files",
     ),
     "save_trimmed": NextflowParameter(
         type=bool,
         default=False,
-        display_name="Save trimmed reads to results directory.",
+        display_name="Save Trimmed",
+        description="Save trimmed reads to results directory.",
     ),
     # Adapter Trimming
     "clip_r1": NextflowParameter(

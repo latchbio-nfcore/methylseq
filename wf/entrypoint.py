@@ -2,14 +2,14 @@ import os
 import shutil
 import subprocess
 import sys
-import typing
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
+from typing import Annotated, List, Optional
 
 import requests
-import typing_extensions
 from flytekit.core.annotation import FlyteAnnotation
+from latch.executions import rename_current_execution, report_nextflow_used_storage
 from latch.ldata.path import LPath
 from latch.resources.tasks import custom_task, nextflow_runtime_task
 from latch.resources.workflow import workflow
@@ -50,11 +50,21 @@ def initialize() -> str:
 
 @dataclass(frozen=True)
 class Sample:
-    sample: typing.Annotated[
-        str, FlyteAnnotation({"rules": [{"regex": r"^[^\s]+$", "message": "Sample name cannot contain spaces."}]})
+    sample: Annotated[
+        str,
+        FlyteAnnotation(
+            {
+                "rules": [
+                    {
+                        "regex": r"^[^\s]+$",
+                        "message": "Sample name cannot contain spaces.",
+                    }
+                ]
+            }
+        ),
     ]
     fastq_1: LatchFile
-    fastq_2: typing.Optional[LatchFile]
+    fastq_2: Optional[LatchFile]
 
 
 class Genome(Enum):
@@ -63,14 +73,32 @@ class Genome(Enum):
     mm10 = "mm10"
 
 
-input_construct_samplesheet = metadata._nextflow_metadata.parameters["input"].samplesheet_constructor
+input_construct_samplesheet = metadata._nextflow_metadata.parameters[
+    "input"
+].samplesheet_constructor
 
 
 @nextflow_runtime_task(cpu=4, memory=8, storage_gib=100)
 def nextflow_runtime(
     pvc_name: str,
-    input: typing.List[Sample],
-    outdir: typing_extensions.Annotated[LatchDir, FlyteAnnotation({"output": True})],
+    run_name: Annotated[
+        str,
+        FlyteAnnotation(
+            {
+                "rules": [
+                    {
+                        "regex": r"^[a-zA-Z0-9_-]+$",
+                        "message": "ID name must contain only letters, digits, underscores, and dashes. No spaces are allowed.",
+                    }
+                ],
+            }
+        ),
+    ],
+    input: List[Sample],
+    outdir: LatchOutputDir,
+    genome_source: str,
+    fasta: Optional[LatchFile],
+    bismark_index: Optional[LatchDir],
     genome: Genome,
     comprehensive: bool,
     non_directional: bool,
@@ -86,6 +114,8 @@ def nextflow_runtime(
     nextseq_trim: int,
 ) -> None:
     shared_dir = Path("/nf-workdir")
+
+    rename_current_execution(str(run_name))
 
     input_samplesheet = input_construct_samplesheet(input)
 
@@ -111,8 +141,8 @@ def nextflow_runtime(
     )
 
     profile_list = []
-    if False:
-        profile_list.extend([p.value for p in execution_profiles])
+    # if False:
+    #     profile_list.extend([p.value for p in execution_profiles])
 
     if len(profile_list) == 0:
         profile_list.append("standard")
@@ -131,8 +161,7 @@ def nextflow_runtime(
         "latch.config",
         "-resume",
         *get_flag("input", input_samplesheet),
-        *get_flag("outdir", outdir),
-        *get_flag("genome", genome),
+        *get_flag("outdir", LatchOutputDir(f"{outdir.remote_path}/{run_name}")),
         *get_flag("comprehensive", comprehensive),
         *get_flag("non_directional", non_directional),
         *get_flag("cytosine_report", cytosine_report),
@@ -146,6 +175,19 @@ def nextflow_runtime(
         *get_flag("three_prime_clip_r2", three_prime_clip_r2),
         *get_flag("nextseq_trim", nextseq_trim),
     ]
+
+    if genome_source == "custom":
+        cmd += [
+            *get_flag("fasta", fasta),
+            # *get_flag("fasta_index", fasta_index),
+            *get_flag("bismark_index", bismark_index),
+        ]
+    elif genome_source == "igenome":
+        cmd += [
+            *get_flag("genome", genome),
+        ]
+    # todo() - compile Latch specific genomes
+    # elif genome_source == "latch_genome":
 
     print("Launching Nextflow Runtime")
     print(" ".join(cmd))
@@ -178,9 +220,34 @@ def nextflow_runtime(
             if name is None:
                 print("Skipping logs upload, failed to get execution name")
             else:
-                remote = LPath(urljoins("latch:///methylseq-logs/Methylseq", name, "nextflow.log"))
+                remote = LPath(
+                    urljoins("latch:///methylseq-logs/Methylseq", name, "nextflow.log")
+                )
                 print(f"Uploading .nextflow.log to {remote.path}")
                 remote.upload_from(nextflow_log)
+
+        print("Computing size of workdir... ", end="")
+        try:
+            result = subprocess.run(
+                ["du", "-sb", str(shared_dir)],
+                check=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                timeout=5 * 60,
+            )
+
+            size = int(result.stdout.split()[0])
+            report_nextflow_used_storage(size)
+            print(f"Done. Workdir size: {size / 1024 / 1024 / 1024: .2f} GiB")
+        except subprocess.TimeoutExpired:
+            print(
+                "Failed to compute storage size: Operation timed out after 5 minutes."
+            )
+        except subprocess.CalledProcessError as e:
+            print(f"Failed to compute storage size: {e.stderr}")
+        except Exception as e:
+            print(f"Failed to compute storage size: {e}")
 
     if failed:
         sys.exit(1)
@@ -188,8 +255,24 @@ def nextflow_runtime(
 
 @workflow(metadata._nextflow_metadata)
 def Methylseq(
-    input: typing.List[Sample],
-    outdir: typing_extensions.Annotated[LatchDir, FlyteAnnotation({"output": True})],
+    input: List[Sample],
+    run_name: Annotated[
+        str,
+        FlyteAnnotation(
+            {
+                "rules": [
+                    {
+                        "regex": r"^[a-zA-Z0-9_-]+$",
+                        "message": "ID name must contain only letters, digits, underscores, and dashes. No spaces are allowed.",
+                    }
+                ],
+            }
+        ),
+    ],
+    outdir: LatchOutputDir,
+    genome_source: str,
+    fasta: Optional[LatchFile] = None,
+    bismark_index: Optional[LatchDir] = None,
     genome: Genome = Genome.hg38,
     comprehensive: bool = False,
     non_directional: bool = False,
@@ -213,8 +296,12 @@ def Methylseq(
     pvc_name: str = initialize()
     nextflow_runtime(
         pvc_name=pvc_name,
+        run_name=run_name,
         input=input,
         outdir=outdir,
+        genome_source=genome_source,
+        fasta=fasta,
+        bismark_index=bismark_index,
         genome=genome,
         comprehensive=comprehensive,
         non_directional=non_directional,
