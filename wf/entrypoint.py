@@ -25,27 +25,7 @@ meta = Path("latch_metadata") / "__init__.py"
 import_module_by_path(meta)
 import latch_metadata
 
-
-@custom_task(cpu=0.25, memory=0.5, storage_gib=1)
-def initialize() -> str:
-    token = os.environ.get("FLYTE_INTERNAL_EXECUTION_ID")
-    if token is None:
-        raise RuntimeError("failed to get execution token")
-
-    headers = {"Authorization": f"Latch-Execution-Token {token}"}
-
-    print("Provisioning shared storage volume... ", end="")
-    resp = requests.post(
-        "http://nf-dispatcher-service.flyte.svc.cluster.local/provision-storage",
-        headers=headers,
-        json={
-            "storage_expiration_hours": 0,
-        },
-    )
-    resp.raise_for_status()
-    print("Done.")
-
-    return resp.json()["name"]
+sys.stdout.reconfigure(line_buffering=True)
 
 
 @dataclass(frozen=True)
@@ -73,9 +53,39 @@ class Genome(Enum):
     mm10 = "mm10"
 
 
-input_construct_samplesheet = metadata._nextflow_metadata.parameters[
-    "input"
-].samplesheet_constructor
+class Reference_Type(Enum):
+    homo_sapiens = "Homo sapiens (RefSeq GRCh38.p14)"
+    mus_musculus = "Mus musculus (RefSeq GRCm39)"
+    rattus_norvegicus = "Rattus norvegicus (RefSeq GRCr8)"
+
+
+class Aligner(Enum):
+    bismark = "bismark"
+    bismark_hisat = "bismark_hisat"
+    bwameth = "bwameth"
+
+
+@custom_task(cpu=0.25, memory=0.5, storage_gib=1)
+def initialize() -> str:
+    token = os.environ.get("FLYTE_INTERNAL_EXECUTION_ID")
+    if token is None:
+        raise RuntimeError("failed to get execution token")
+
+    headers = {"Authorization": f"Latch-Execution-Token {token}"}
+
+    print("Provisioning shared storage volume... ", end="")
+    resp = requests.post(
+        "http://nf-dispatcher-service.flyte.svc.cluster.local/provision-storage-ofs",
+        headers=headers,
+        json={
+            "storage_expiration_hours": 0,
+            "version": 2,
+        },
+    )
+    resp.raise_for_status()
+    print("Done.")
+
+    return resp.json()["name"]
 
 
 @nextflow_runtime_task(cpu=4, memory=8, storage_gib=100)
@@ -96,28 +106,71 @@ def nextflow_runtime(
     ],
     input: List[Sample],
     outdir: LatchOutputDir,
+    email: Optional[str],
+    multiqc_title: Optional[str],
+    # Reference Genome
     genome_source: str,
-    fasta: Optional[LatchFile],
-    bismark_index: Optional[LatchDir],
+    latch_genome: Reference_Type,
     genome: Genome,
+    fasta: Optional[LatchFile],
+    fasta_index: Optional[LatchFile],
+    bismark_index: Optional[LatchDir],
+    bwa_meth_index: Optional[str],
+    # Alignment
+    aligner: Aligner,
     comprehensive: bool,
     non_directional: bool,
     cytosine_report: bool,
+    # Special library types
+    pbat: bool,
+    rrbs: bool,
+    slamseq: bool,
+    em_seq: bool,
+    single_cell: bool,
+    accel: bool,
+    cegx: bool,
+    epignome: bool,
+    zymo: bool,
+    # Save intermediate files
     save_reference: bool,
     save_align_intermeds: bool,
     unmapped: bool,
     save_trimmed: bool,
+    # Adapter Trimming
     clip_r1: int,
     clip_r2: int,
     three_prime_clip_r1: int,
     three_prime_clip_r2: int,
     nextseq_trim: int,
+    # Bismark options
+    relax_mismatches: bool,
+    num_mismatches: float,
+    meth_cutoff: Optional[int],
+    no_overlap: bool,
+    ignore_r1: Optional[int],
+    ignore_r2: Optional[int],
+    ignore_3prime_r1: Optional[int],
+    ignore_3prime_r2: Optional[int],
+    known_splices: Optional[LatchFile],
+    local_alignment: bool,
+    minins: Optional[int],
+    maxins: Optional[int],
+    nomeseq: bool,
+    # bwa-meth options
+    min_depth: Optional[int],
+    ignore_flags: bool,
+    methyl_kit: bool,
+    # Qualimap Options
+    bamqc_regions_file: Optional[LatchFile],
+    # Skip pipeline steps
+    skip_trimming: bool,
+    skip_deduplication: bool,
+    skip_multiqc: bool,
+    # Additional option
+    multiqc_methods_description: Optional[str],
 ) -> None:
     shared_dir = Path("/nf-workdir")
-
     rename_current_execution(str(run_name))
-
-    input_samplesheet = input_construct_samplesheet(input)
 
     ignore_list = [
         "latch",
@@ -140,9 +193,7 @@ def nextflow_runtime(
         dirs_exist_ok=True,
     )
 
-    profile_list = []
-    # if False:
-    #     profile_list.extend([p.value for p in execution_profiles])
+    profile_list = ["docker", "test"]
 
     if len(profile_list) == 0:
         profile_list.append("standard")
@@ -160,22 +211,69 @@ def nextflow_runtime(
         "-c",
         "latch.config",
         "-resume",
-        *get_flag("input", input_samplesheet),
+        *get_flag("input", input),
         *get_flag("outdir", LatchOutputDir(f"{outdir.remote_path}/{run_name}")),
+        *get_flag("email", email),
+        *get_flag("multiqc_title", multiqc_title),
+        # Reference Genome
+        *get_flag("genome", genome),
+        *get_flag("fasta", fasta),
+        *get_flag("fasta_index", fasta_index),
+        *get_flag("bismark_index", bismark_index),
+        *get_flag("bwa_meth_index", bwa_meth_index),
+        # Alignment
+        *get_flag("aligner", aligner),
         *get_flag("comprehensive", comprehensive),
         *get_flag("non_directional", non_directional),
         *get_flag("cytosine_report", cytosine_report),
+        # Special library types
+        *get_flag("pbat", pbat),
+        *get_flag("rrbs", rrbs),
+        *get_flag("slamseq", slamseq),
+        *get_flag("em_seq", em_seq),
+        *get_flag("single_cell", single_cell),
+        *get_flag("accel", accel),
+        *get_flag("cegx", cegx),
+        *get_flag("epignome", epignome),
+        *get_flag("zymo", zymo),
+        # Save intermediate files
         *get_flag("save_reference", save_reference),
         *get_flag("save_align_intermeds", save_align_intermeds),
         *get_flag("unmapped", unmapped),
         *get_flag("save_trimmed", save_trimmed),
+        # Adapter Trimming
         *get_flag("clip_r1", clip_r1),
         *get_flag("clip_r2", clip_r2),
         *get_flag("three_prime_clip_r1", three_prime_clip_r1),
         *get_flag("three_prime_clip_r2", three_prime_clip_r2),
         *get_flag("nextseq_trim", nextseq_trim),
+        # Bismark options
+        *get_flag("relax_mismatches", relax_mismatches),
+        *get_flag("num_mismatches", num_mismatches),
+        *get_flag("meth_cutoff", meth_cutoff),
+        *get_flag("no_overlap", no_overlap),
+        *get_flag("ignore_r1", ignore_r1),
+        *get_flag("ignore_r2", ignore_r2),
+        *get_flag("ignore_3prime_r1", ignore_3prime_r1),
+        *get_flag("ignore_3prime_r2", ignore_3prime_r2),
+        *get_flag("known_splices", known_splices),
+        *get_flag("local_alignment", local_alignment),
+        *get_flag("minins", minins),
+        *get_flag("maxins", maxins),
+        *get_flag("nomeseq", nomeseq),
+        # bwa-meth options
+        *get_flag("min_depth", min_depth),
+        *get_flag("ignore_flags", ignore_flags),
+        *get_flag("methyl_kit", methyl_kit),
+        # Qualimap Options
+        *get_flag("bamqc_regions_file", bamqc_regions_file),
+        # Skip pipeline steps
+        *get_flag("skip_trimming", skip_trimming),
+        *get_flag("skip_deduplication", skip_deduplication),
+        *get_flag("skip_multiqc", skip_multiqc),
+        # Additional option
+        *get_flag("multiqc_methods_description", multiqc_methods_description),
     ]
-
     if genome_source == "custom":
         cmd += [
             *get_flag("fasta", fasta),
@@ -186,8 +284,13 @@ def nextflow_runtime(
         cmd += [
             *get_flag("genome", genome),
         ]
-    # todo() - compile Latch specific genomes
-    # elif genome_source == "latch_genome":
+    if genome_source == "latch_genome_source":
+        cmd += [
+            "--fasta",
+            f"s3://latch-public/nf-core/rnaseq/{latch_genome.name}/{latch_genome.name}.genomic.fna",
+            "--bismark_index",
+            f"s3://latch-public/nf-core/rnaseq/{latch_genome.name}/{latch_genome.name}.genomic.gtf",
+        ]
 
     print("Launching Nextflow Runtime")
     print(" ".join(cmd))
@@ -221,7 +324,11 @@ def nextflow_runtime(
                 print("Skipping logs upload, failed to get execution name")
             else:
                 remote = LPath(
-                    urljoins("latch:///methylseq-logs/Methylseq", name, "nextflow.log")
+                    urljoins(
+                        "latch:///your_log_dir/nf_nf_core_methylseq",
+                        name,
+                        "nextflow.log",
+                    )
                 )
                 print(f"Uploading .nextflow.log to {remote.path}")
                 remote.upload_from(nextflow_log)
@@ -254,7 +361,7 @@ def nextflow_runtime(
 
 
 @workflow(metadata._nextflow_metadata)
-def Methylseq(
+def nf_nf_core_methylseq(
     input: List[Sample],
     run_name: Annotated[
         str,
@@ -271,21 +378,67 @@ def Methylseq(
     ],
     outdir: LatchOutputDir,
     genome_source: str,
-    fasta: Optional[LatchFile] = None,
-    bismark_index: Optional[LatchDir] = None,
-    genome: Genome = Genome.hg38,
-    comprehensive: bool = False,
-    non_directional: bool = False,
-    cytosine_report: bool = False,
-    save_reference: bool = False,
-    save_align_intermeds: bool = False,
-    unmapped: bool = False,
-    save_trimmed: bool = False,
+    email: Optional[str],
+    multiqc_title: Optional[str],
+    fasta: Optional[LatchFile],
+    fasta_index: Optional[LatchFile],
+    bismark_index: Optional[LatchDir],
+    bwa_meth_index: Optional[str],
+    # Alignment
+    comprehensive: bool,
+    non_directional: bool,
+    cytosine_report: bool,
+    # Special library types
+    pbat: bool,
+    rrbs: bool,
+    slamseq: bool,
+    em_seq: bool,
+    single_cell: bool,
+    accel: bool,
+    cegx: bool,
+    epignome: bool,
+    zymo: bool,
+    # Save intermediate files
+    save_reference: bool,
+    save_align_intermeds: bool,
+    unmapped: bool,
+    save_trimmed: bool,
+    relax_mismatches: bool,
+    known_splices: Optional[LatchFile],
+    local_alignment: bool,
+    minins: Optional[int],
+    maxins: Optional[int],
+    nomeseq: bool,
+    # bwa-meth options
+    min_depth: Optional[int],
+    ignore_flags: bool,
+    methyl_kit: bool,
+    # Qualimap Options
+    bamqc_regions_file: Optional[LatchFile],
+    # Skip pipeline steps
+    skip_trimming: bool,
+    skip_deduplication: bool,
+    skip_multiqc: bool,
+    # Additional option
+    multiqc_methods_description: Optional[str],
+    # Adapter Trimming
     clip_r1: int = 10,
     clip_r2: int = 10,
     three_prime_clip_r1: int = 10,
     three_prime_clip_r2: int = 10,
     nextseq_trim: int = 0,
+    # Bismark options
+    num_mismatches: float = 0.6,
+    meth_cutoff: Optional[int] = None,
+    no_overlap: bool = True,
+    ignore_r1: Optional[int] = None,
+    ignore_r2: int = 2,
+    ignore_3prime_r1: Optional[int] = None,
+    ignore_3prime_r2: int = 2,
+    # Reference Genome
+    latch_genome: Reference_Type = Reference_Type.homo_sapiens,
+    genome: Genome = Genome.hg38,
+    aligner: Aligner = Aligner.bismark,
 ) -> None:
     """
     nf-core/methylseq
@@ -299,13 +452,28 @@ def Methylseq(
         run_name=run_name,
         input=input,
         outdir=outdir,
+        email=email,
+        multiqc_title=multiqc_title,
         genome_source=genome_source,
-        fasta=fasta,
-        bismark_index=bismark_index,
+        latch_genome=latch_genome,
         genome=genome,
+        fasta=fasta,
+        fasta_index=fasta_index,
+        bismark_index=bismark_index,
+        bwa_meth_index=bwa_meth_index,
+        aligner=aligner,
         comprehensive=comprehensive,
         non_directional=non_directional,
         cytosine_report=cytosine_report,
+        pbat=pbat,
+        rrbs=rrbs,
+        slamseq=slamseq,
+        em_seq=em_seq,
+        single_cell=single_cell,
+        accel=accel,
+        cegx=cegx,
+        epignome=epignome,
+        zymo=zymo,
         save_reference=save_reference,
         save_align_intermeds=save_align_intermeds,
         unmapped=unmapped,
@@ -315,4 +483,25 @@ def Methylseq(
         three_prime_clip_r1=three_prime_clip_r1,
         three_prime_clip_r2=three_prime_clip_r2,
         nextseq_trim=nextseq_trim,
+        relax_mismatches=relax_mismatches,
+        num_mismatches=num_mismatches,
+        meth_cutoff=meth_cutoff,
+        no_overlap=no_overlap,
+        ignore_r1=ignore_r1,
+        ignore_r2=ignore_r2,
+        ignore_3prime_r1=ignore_3prime_r1,
+        ignore_3prime_r2=ignore_3prime_r2,
+        known_splices=known_splices,
+        local_alignment=local_alignment,
+        minins=minins,
+        maxins=maxins,
+        nomeseq=nomeseq,
+        min_depth=min_depth,
+        ignore_flags=ignore_flags,
+        methyl_kit=methyl_kit,
+        bamqc_regions_file=bamqc_regions_file,
+        skip_trimming=skip_trimming,
+        skip_deduplication=skip_deduplication,
+        skip_multiqc=skip_multiqc,
+        multiqc_methods_description=multiqc_methods_description,
     )

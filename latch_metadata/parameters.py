@@ -5,17 +5,14 @@ from typing import List, Optional
 from latch.types.directory import LatchDir, LatchOutputDir
 from latch.types.file import LatchFile
 from latch.types.metadata import (
-    FlowBase,
     Fork,
     ForkBranch,
     NextflowParameter,
     Params,
     Section,
+    Spoiler,
+    Text,
 )
-
-# Import these into your `__init__.py` file:
-#
-# from .parameters import generated_parameters
 
 
 @dataclass(frozen=True)
@@ -31,13 +28,26 @@ class Genome(Enum):
     mm10 = "mm10"
 
 
-flow: List[FlowBase] = [
+class Reference_Type(Enum):
+    homo_sapiens = "Homo sapiens (RefSeq GRCh38.p14)"
+    mus_musculus = "Mus musculus (RefSeq GRCm39)"
+    rattus_norvegicus = "Rattus norvegicus (RefSeq GRCr8)"
+    # drosophila_melanogaster = "Drosophila melanogaster (RefSeq Release_6_plus_ISO1_MT)"
+    # rhesus_macaque = "Macaca mulatta (RefSeq rheMac10/Mmul_10)"
+    # saccharomyces_cerevisiae = "Saccharomyces cerevisiae (RefSeq R64)"
+
+
+class Aligner(Enum):
+    bismark = "bismark"
+    bismark_hisat = "bismark_hisat"
+    bwameth = "bwameth"
+
+
+flow = [
     Section(
-        "Input / Output",
+        "Input",
         Params(
             "input",
-            "run_name",
-            "outdir",
         ),
     ),
     Section(
@@ -45,12 +55,19 @@ flow: List[FlowBase] = [
         Fork(
             "genome_source",
             "",
+            latch_genome_source=ForkBranch(
+                "Latch Verified Reference Genome",
+                Params(
+                    "latch_genome",
+                ),
+            ),
             custom=ForkBranch(
                 "Custom Reference",
                 Params(
                     "fasta",
                     "fasta_index",
                     "bismark_index",
+                    "bwa_meth_index",
                 ),
             ),
             igenome=ForkBranch(
@@ -62,22 +79,97 @@ flow: List[FlowBase] = [
         ),
     ),
     Section(
-        "Bismark Alignment Options",
-        Params("comprehensive", "non_directional", "cytosine_report"),
+        "Aligner",
+        Params("aligner", "comprehensive"),
     ),
     Section(
-        "Adapter Trimming",
-        Params(
-            "clip_r1",
-            "clip_r2",
-            "three_prime_clip_r1",
-            "three_prime_clip_r2",
-            "nextseq_trim",
+        "Output Directory",
+        Params("run_name"),
+        Text("Parent directory for outputs"),
+        Params("outdir"),
+    ),
+    Spoiler(
+        "Advanced options",
+        Section(
+            "Adapter Trimming",
+            Params(
+                "clip_r1",
+                "clip_r2",
+                "three_prime_clip_r1",
+                "three_prime_clip_r2",
+                "nextseq_trim",
+            ),
         ),
-    ),
-    Section(
-        "Save Intermediate Files",
-        Params("save_reference", "save_align_intermeds", "unmapped", "save_trimmed"),
+        Section(
+            "Special Library Types",
+            Params(
+                "pbat",
+                "rrbs",
+                "slamseq",
+                "em_seq",
+                "single_cell",
+                "accel",
+                "cegx",
+                "epignome",
+                "zymo",
+            ),
+        ),
+        Section(
+            "Bismark Options",
+            Params(
+                "non_directional",
+                "cytosine_report",
+                "relax_mismatches",
+                "num_mismatches",
+                "meth_cutoff",
+                "no_overlap",
+                "ignore_r1",
+                "ignore_r2",
+                "ignore_3prime_r1",
+                "ignore_3prime_r2",
+                "known_splices",
+                "local_alignment",
+                "minins",
+                "maxins",
+                "nomeseq",
+            ),
+        ),
+        Section(
+            "BWA-meth Options",
+            Params(
+                "min_depth",
+                "ignore_flags",
+                "methyl_kit",
+            ),
+        ),
+        Section(
+            "Qualimap Options",
+            Params(
+                "bamqc_regions_file",
+            ),
+        ),
+        Section(
+            "Save Intermediate Files",
+            Params(
+                "save_reference", "save_align_intermeds", "unmapped", "save_trimmed"
+            ),
+        ),
+        Section(
+            "Skip Pipeline Steps",
+            Params(
+                "skip_trimming",
+                "skip_deduplication",
+                "skip_multiqc",
+            ),
+        ),
+        Section(
+            "MultiQC Options",
+            Params(
+                "email",
+                "multiqc_title",
+                "multiqc_methods_description",
+            ),
+        ),
     ),
 ]
 
@@ -101,8 +193,24 @@ generated_parameters = {
         display_name="Output Directory",
         description="The output directory where the results will be saved.",
     ),
+    "email": NextflowParameter(
+        type=Optional[str],
+        display_name="Email",
+        description="Email address for completion summary.",
+    ),
+    "multiqc_title": NextflowParameter(
+        type=Optional[str],
+        display_name="MultiQC Report Title",
+        description="MultiQC report title. Printed as page header, used for filename if not otherwise specified.",
+    ),
     # Reference Genome
     "genome_source": NextflowParameter(),
+    "latch_genome": NextflowParameter(
+        type=Reference_Type,
+        display_name="Latch Verified Reference Genome",
+        description="Name of Latch Verified Reference Genome.",
+        default=Reference_Type.homo_sapiens,
+    ),
     "genome": NextflowParameter(
         type=Genome,
         default=Genome.hg38,
@@ -115,13 +223,29 @@ generated_parameters = {
         display_name="FASTA Reference",
         description="FASTA genome file (Only .fa, .fa.gz, .fasta or .fasta.gz accepted)",
     ),
+    "fasta_index": NextflowParameter(
+        type=Optional[LatchFile],
+        display_name="FASTA Index",
+        description="Path to Fasta index file.",
+    ),
     "bismark_index": NextflowParameter(
         type=Optional[LatchDir],
         default=None,
         display_name="Bismark Index",
         description="Directory containing a Bismark reference index.",
     ),
+    "bwa_meth_index": NextflowParameter(
+        type=Optional[str],
+        display_name="BWA-meth Index",
+        description="bwameth index filename base",
+    ),
     # Alignment
+    "aligner": NextflowParameter(
+        type=Aligner,
+        default=Aligner.bismark,
+        display_name="Aligner",
+        description="Alignment tool to use.",
+    ),
     "comprehensive": NextflowParameter(
         type=bool,
         default=False,
@@ -140,7 +264,62 @@ generated_parameters = {
         display_name="Cytosine Report",
         description="Output stranded cytosine report, following Bismark's bismark_methylation_extractor step.",
     ),
-    # 'Save intermediate files'
+    # Special library types
+    "pbat": NextflowParameter(
+        type=bool,
+        default=False,
+        display_name="PBAT",
+        description="Preset for working with PBAT libraries.",
+    ),
+    "rrbs": NextflowParameter(
+        type=bool,
+        default=False,
+        display_name="RRBS",
+        description="Turn on if dealing with MspI digested material.",
+    ),
+    "slamseq": NextflowParameter(
+        type=bool,
+        default=False,
+        display_name="SLAM-seq",
+        description="Run bismark in SLAM-seq mode.",
+    ),
+    "em_seq": NextflowParameter(
+        type=bool,
+        default=False,
+        display_name="EM-seq",
+        description="Preset for EM-seq libraries.",
+    ),
+    "single_cell": NextflowParameter(
+        type=bool,
+        default=False,
+        display_name="Single-cell",
+        description="Trimming preset for single-cell bisulfite libraries.",
+    ),
+    "accel": NextflowParameter(
+        type=bool,
+        default=False,
+        display_name="Accel",
+        description="Trimming preset for the Accel kit.",
+    ),
+    "cegx": NextflowParameter(
+        type=bool,
+        default=False,
+        display_name="CEGX",
+        description="Trimming preset for the CEGX bisulfite kit.",
+    ),
+    "epignome": NextflowParameter(
+        type=bool,
+        default=False,
+        display_name="Epignome",
+        description="Trimming preset for the Epignome kit.",
+    ),
+    "zymo": NextflowParameter(
+        type=bool,
+        default=False,
+        display_name="Zymo",
+        description="Trimming preset for the Zymo kit.",
+    ),
+    # Save intermediate files
     "save_reference": NextflowParameter(
         type=bool,
         default=False,
@@ -195,5 +374,127 @@ generated_parameters = {
         default=0,
         display_name="Nextseq Trim",
         description="Trim bases below this quality value from the 3' end of the read, ignoring high-quality G bases",
+    ),
+    # Bismark options
+    "relax_mismatches": NextflowParameter(
+        type=bool,
+        default=False,
+        display_name="Relax Mismatches",
+        description="Turn on to relax stringency for alignment (set allowed penalty with --num_mismatches).",
+    ),
+    "num_mismatches": NextflowParameter(
+        type=float,
+        default=0.6,
+        display_name="Number of Mismatches",
+        description="0.6 will allow a penalty of bp * -0.6 - for 100bp reads (bismark default is 0.2)",
+    ),
+    "meth_cutoff": NextflowParameter(
+        type=int,
+        display_name="Methylation Cutoff",
+        description="Specify a minimum read coverage to report a methylation call",
+    ),
+    "no_overlap": NextflowParameter(
+        type=bool,
+        default=True,
+        display_name="No Overlap",
+        description="Ignore read 2 methylation when it overlaps read 1",
+    ),
+    "ignore_r1": NextflowParameter(
+        type=int,
+        display_name="Ignore R1",
+        description="Ignore methylation in first n bases of 5' end of R1",
+    ),
+    "ignore_r2": NextflowParameter(
+        type=int,
+        default=2,
+        display_name="Ignore R2",
+        description="Ignore methylation in first n bases of 5' end of R2",
+    ),
+    "ignore_3prime_r1": NextflowParameter(
+        type=int,
+        display_name="Ignore 3' R1",
+        description="Ignore methylation in last n bases of 3' end of R1",
+    ),
+    "ignore_3prime_r2": NextflowParameter(
+        type=int,
+        default=2,
+        display_name="Ignore 3' R2",
+        description="Ignore methylation in last n bases of 3' end of R2",
+    ),
+    "known_splices": NextflowParameter(
+        type=Optional[LatchFile],
+        display_name="Known Splices",
+        description="Supply a .gtf file containing known splice sites (bismark_hisat only).",
+    ),
+    "local_alignment": NextflowParameter(
+        type=bool,
+        default=False,
+        display_name="Local Alignment",
+        description="Allow soft-clipping of reads (potentially useful for single-cell experiments).",
+    ),
+    "minins": NextflowParameter(
+        type=int,
+        display_name="Min Insert Size",
+        description="The minimum insert size for valid paired-end alignments.",
+    ),
+    "maxins": NextflowParameter(
+        type=int,
+        display_name="Max Insert Size",
+        description="The maximum insert size for valid paired-end alignments.",
+    ),
+    "nomeseq": NextflowParameter(
+        type=bool,
+        default=False,
+        display_name="NOMe-seq",
+        description="Sample is NOMe-seq or NMT-seq. Runs coverage2cytosine.",
+    ),
+    # bwa-meth options
+    "min_depth": NextflowParameter(
+        type=int,
+        display_name="Min Depth",
+        description="Specify a minimum read coverage for MethylDackel to report a methylation call.",
+    ),
+    "ignore_flags": NextflowParameter(
+        type=bool,
+        default=False,
+        display_name="Ignore Flags",
+        description="MethylDackel - ignore SAM flags",
+    ),
+    "methyl_kit": NextflowParameter(
+        type=bool,
+        default=False,
+        display_name="MethylKit",
+        description="Save files for use with methylKit",
+    ),
+    # Qualimap Options
+    "bamqc_regions_file": NextflowParameter(
+        type=Optional[LatchFile],
+        display_name="BamQC Regions File",
+        description="A GFF or BED file containing the target regions which will be passed to Qualimap/Bamqc.",
+    ),
+    # Skip pipeline steps
+    "skip_trimming": NextflowParameter(
+        type=bool,
+        default=False,
+        display_name="Skip Trimming",
+        description="Skip read trimming.",
+    ),
+    "skip_deduplication": NextflowParameter(
+        type=bool,
+        default=False,
+        display_name="Skip Deduplication",
+        description="Skip deduplication step after alignment.",
+    ),
+    "skip_multiqc": NextflowParameter(
+        type=bool,
+        default=False,
+        display_name="Skip MultiQC",
+        description="Skip MultiQC",
+    ),
+    # Additional option
+    "multiqc_methods_description": NextflowParameter(
+        type=Optional[str],
+        display_name="MultiQC Methods Description",
+        description="Custom MultiQC yaml file containing HTML including a methods description.",
     ),
 }
