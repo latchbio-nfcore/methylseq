@@ -27,6 +27,10 @@ import latch_metadata
 
 sys.stdout.reconfigure(line_buffering=True)
 
+input_construct_samplesheet = metadata._nextflow_metadata.parameters[
+    "input"
+].samplesheet_constructor
+
 
 @dataclass(frozen=True)
 class Sample:
@@ -75,7 +79,8 @@ def initialize() -> str:
 
     print("Provisioning shared storage volume... ", end="")
     resp = requests.post(
-        "http://nf-dispatcher-service.flyte.svc.cluster.local/provision-storage-ofs",
+        # "http://nf-dispatcher-service.flyte.svc.cluster.local/provision-storage-ofs",
+        "http://nf-dispatcher-service.flyte.svc.cluster.local/provision-storage",
         headers=headers,
         json={
             "storage_expiration_hours": 0,
@@ -172,6 +177,8 @@ def nextflow_runtime(
     shared_dir = Path("/nf-workdir")
     rename_current_execution(str(run_name))
 
+    input_samplesheet = input_construct_samplesheet(input)
+
     ignore_list = [
         "latch",
         ".latch",
@@ -207,11 +214,11 @@ def nextflow_runtime(
         "-work-dir",
         str(shared_dir),
         "-profile",
-        profiles,
+        "docker",
         "-c",
         "latch.config",
         "-resume",
-        *get_flag("input", input),
+        *get_flag("input", input_samplesheet),
         *get_flag("outdir", LatchOutputDir(f"{outdir.remote_path}/{run_name}")),
         *get_flag("email", email),
         *get_flag("multiqc_title", multiqc_title),
