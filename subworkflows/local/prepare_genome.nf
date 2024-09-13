@@ -46,11 +46,12 @@ workflow PREPARE_GENOME {
         /*
          * Generate bwameth index if not supplied
          */
+         // TAHIR changed to correct for wrong channel - also found https://github.com/nf-core/methylseq/issues/396 which agrees
         if (params.bwa_meth_index) {
             if (params.bwa_meth_index.endsWith('.tar.gz')) {
-                ch_bismark_index = UNTAR ( [ [:], file(params.bwa_meth_index) ] ).untar.map { it[1] }
+                ch_bwameth_index = UNTAR ( [ [:], file(params.bwa_meth_index) ] ).untar.map { it[1] }
             } else {
-                ch_bismark_index = Channel.value(file(params.bwa_meth_index))
+                ch_bwameth_index = Channel.value(file(params.bwa_meth_index))
             }
         } else {
             BWAMETH_INDEX(ch_fasta)
@@ -61,10 +62,11 @@ workflow PREPARE_GENOME {
         /*
          * Generate fasta index if not supplied
          */
+         // TAHIR changed from issue https://github.com/nf-core/methylseq/issues/352
         if (params.fasta_index) {
             ch_fasta_index = Channel.value(file(params.fasta_index))
         } else {
-            SAMTOOLS_FAIDX([[:], ch_fasta])
+            SAMTOOLS_FAIDX([:], ch_fasta)
             ch_fasta_index = SAMTOOLS_FAIDX.out.fai.map{ return(it[1])}
             ch_versions = ch_versions.mix(SAMTOOLS_FAIDX.out.versions)
         }

@@ -31,15 +31,12 @@ class Genome(Enum):
 class Reference_Type(Enum):
     homo_sapiens = "Homo sapiens (RefSeq GRCh38.p14)"
     mus_musculus = "Mus musculus (RefSeq GRCm39)"
-    rattus_norvegicus = "Rattus norvegicus (RefSeq GRCr8)"
-    # drosophila_melanogaster = "Drosophila melanogaster (RefSeq Release_6_plus_ISO1_MT)"
-    # rhesus_macaque = "Macaca mulatta (RefSeq rheMac10/Mmul_10)"
-    # saccharomyces_cerevisiae = "Saccharomyces cerevisiae (RefSeq R64)"
+    # rattus_norvegicus = "Rattus norvegicus (RefSeq GRCr8)"
 
 
 class Aligner(Enum):
     bismark = "bismark"
-    bismark_hisat = "bismark_hisat"
+    # bismark_hisat = "bismark_hisat"
     bwameth = "bwameth"
 
 
@@ -69,11 +66,14 @@ flow = [
                     "bismark_index",
                     "bwa_meth_index",
                 ),
-            ),
-            igenome=ForkBranch(
-                "iGenome Reference Genome",
-                Params(
-                    "genome",
+                Spoiler(
+                    "Additional options",
+                    Text(
+                        "Use iGenomes with caution. The transcriptome and GTF files in iGenomes are vastly out of date with respect to current annotations from Ensembl e.g. human iGenomes annotations are from Ensembl release 75, while the current Ensembl release is 108. Please consider downloading and using a more updated version of your reference genome."
+                    ),
+                    Params(
+                        "genome",
+                    ),
                 ),
             ),
         ),
@@ -90,7 +90,7 @@ flow = [
     ),
     Spoiler(
         "Advanced options",
-        Section(
+        Spoiler(
             "Adapter Trimming",
             Params(
                 "clip_r1",
@@ -100,7 +100,7 @@ flow = [
                 "nextseq_trim",
             ),
         ),
-        Section(
+        Spoiler(
             "Special Library Types",
             Params(
                 "pbat",
@@ -114,7 +114,7 @@ flow = [
                 "zymo",
             ),
         ),
-        Section(
+        Spoiler(
             "Bismark Options",
             Params(
                 "non_directional",
@@ -134,7 +134,7 @@ flow = [
                 "nomeseq",
             ),
         ),
-        Section(
+        Spoiler(
             "BWA-meth Options",
             Params(
                 "min_depth",
@@ -142,19 +142,19 @@ flow = [
                 "methyl_kit",
             ),
         ),
-        Section(
+        Spoiler(
             "Qualimap Options",
             Params(
                 "bamqc_regions_file",
             ),
         ),
-        Section(
+        Spoiler(
             "Save Intermediate Files",
             Params(
                 "save_reference", "save_align_intermeds", "unmapped", "save_trimmed"
             ),
         ),
-        Section(
+        Spoiler(
             "Skip Pipeline Steps",
             Params(
                 "skip_trimming",
@@ -162,7 +162,7 @@ flow = [
                 "skip_multiqc",
             ),
         ),
-        Section(
+        Spoiler(
             "MultiQC Options",
             Params(
                 "email",

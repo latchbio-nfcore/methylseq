@@ -12,7 +12,6 @@ from flytekit.core.annotation import FlyteAnnotation
 from latch.executions import rename_current_execution, report_nextflow_used_storage
 from latch.ldata.path import LPath
 from latch.resources.tasks import custom_task, nextflow_runtime_task
-from latch.resources.workflow import workflow
 from latch.types import metadata
 from latch.types.directory import LatchDir, LatchOutputDir
 from latch.types.file import LatchFile
@@ -23,7 +22,6 @@ from latch_cli.utils import urljoins
 
 meta = Path("latch_metadata") / "__init__.py"
 import_module_by_path(meta)
-import latch_metadata
 
 sys.stdout.reconfigure(line_buffering=True)
 
@@ -60,17 +58,19 @@ class Genome(Enum):
 class Reference_Type(Enum):
     homo_sapiens = "Homo sapiens (RefSeq GRCh38.p14)"
     mus_musculus = "Mus musculus (RefSeq GRCm39)"
-    rattus_norvegicus = "Rattus norvegicus (RefSeq GRCr8)"
+    # rattus_norvegicus = "Rattus norvegicus (RefSeq GRCr8)"
 
 
 class Aligner(Enum):
     bismark = "bismark"
-    bismark_hisat = "bismark_hisat"
+    # bismark_hisat = "bismark_hisat"
     bwameth = "bwameth"
 
 
 @custom_task(cpu=0.25, memory=0.5, storage_gib=1)
-def initialize() -> str:
+def initialize(run_name: str) -> str:
+    rename_current_execution(str(run_name))
+
     token = os.environ.get("FLYTE_INTERNAL_EXECUTION_ID")
     if token is None:
         raise RuntimeError("failed to get execution token")
@@ -79,7 +79,6 @@ def initialize() -> str:
 
     print("Provisioning shared storage volume... ", end="")
     resp = requests.post(
-        # "http://nf-dispatcher-service.flyte.svc.cluster.local/provision-storage-ofs",
         "http://nf-dispatcher-service.flyte.svc.cluster.local/provision-storage",
         headers=headers,
         json={
@@ -116,11 +115,11 @@ def nextflow_runtime(
     # Reference Genome
     genome_source: str,
     latch_genome: Reference_Type,
-    genome: Genome,
+    genome: Optional[Genome],
     fasta: Optional[LatchFile],
     fasta_index: Optional[LatchFile],
     bismark_index: Optional[LatchDir],
-    bwa_meth_index: Optional[str],
+    bwa_meth_index: Optional[LatchDir],
     # Alignment
     aligner: Aligner,
     comprehensive: bool,
@@ -175,7 +174,6 @@ def nextflow_runtime(
     multiqc_methods_description: Optional[str],
 ) -> None:
     shared_dir = Path("/nf-workdir")
-    rename_current_execution(str(run_name))
 
     input_samplesheet = input_construct_samplesheet(input)
 
@@ -199,13 +197,6 @@ def nextflow_runtime(
         ignore_dangling_symlinks=True,
         dirs_exist_ok=True,
     )
-
-    profile_list = ["docker", "test"]
-
-    if len(profile_list) == 0:
-        profile_list.append("standard")
-
-    profiles = ",".join(profile_list)
 
     cmd = [
         "/root/nextflow",
@@ -281,22 +272,17 @@ def nextflow_runtime(
         # Additional option
         *get_flag("multiqc_methods_description", multiqc_methods_description),
     ]
-    if genome_source == "custom":
-        cmd += [
-            *get_flag("fasta", fasta),
-            # *get_flag("fasta_index", fasta_index),
-            *get_flag("bismark_index", bismark_index),
-        ]
-    elif genome_source == "igenome":
-        cmd += [
-            *get_flag("genome", genome),
-        ]
+
     if genome_source == "latch_genome_source":
         cmd += [
             "--fasta",
-            f"s3://latch-public/nf-core/rnaseq/{latch_genome.name}/{latch_genome.name}.genomic.fna",
+            f"s3://latch-public/nf-core/methylseq/{latch_genome.name}/{latch_genome.name}.genomic.fa",
+            "--fasta_index",
+            f"s3://latch-public/nf-core/methylseq/{latch_genome.name}/{latch_genome.name}.genomic.fa.fai",
             "--bismark_index",
-            f"s3://latch-public/nf-core/rnaseq/{latch_genome.name}/{latch_genome.name}.genomic.gtf",
+            f"s3://latch-public/nf-core/methylseq/{latch_genome.name}/BismarkIndex",
+            "--bwa_meth_index",
+            f"s3://latch-public/nf-core/methylseq/{latch_genome.name}/bwameth",
         ]
 
     print("Launching Nextflow Runtime")
@@ -365,150 +351,3 @@ def nextflow_runtime(
 
     if failed:
         sys.exit(1)
-
-
-@workflow(metadata._nextflow_metadata)
-def nf_nf_core_methylseq(
-    input: List[Sample],
-    run_name: Annotated[
-        str,
-        FlyteAnnotation(
-            {
-                "rules": [
-                    {
-                        "regex": r"^[a-zA-Z0-9_-]+$",
-                        "message": "ID name must contain only letters, digits, underscores, and dashes. No spaces are allowed.",
-                    }
-                ],
-            }
-        ),
-    ],
-    outdir: LatchOutputDir,
-    genome_source: str,
-    email: Optional[str],
-    multiqc_title: Optional[str],
-    fasta: Optional[LatchFile],
-    fasta_index: Optional[LatchFile],
-    bismark_index: Optional[LatchDir],
-    bwa_meth_index: Optional[str],
-    # Alignment
-    comprehensive: bool,
-    non_directional: bool,
-    cytosine_report: bool,
-    # Special library types
-    pbat: bool,
-    rrbs: bool,
-    slamseq: bool,
-    em_seq: bool,
-    single_cell: bool,
-    accel: bool,
-    cegx: bool,
-    epignome: bool,
-    zymo: bool,
-    # Save intermediate files
-    save_reference: bool,
-    save_align_intermeds: bool,
-    unmapped: bool,
-    save_trimmed: bool,
-    relax_mismatches: bool,
-    known_splices: Optional[LatchFile],
-    local_alignment: bool,
-    minins: Optional[int],
-    maxins: Optional[int],
-    nomeseq: bool,
-    # bwa-meth options
-    min_depth: Optional[int],
-    ignore_flags: bool,
-    methyl_kit: bool,
-    # Qualimap Options
-    bamqc_regions_file: Optional[LatchFile],
-    # Skip pipeline steps
-    skip_trimming: bool,
-    skip_deduplication: bool,
-    skip_multiqc: bool,
-    # Additional option
-    multiqc_methods_description: Optional[str],
-    # Adapter Trimming
-    clip_r1: int = 10,
-    clip_r2: int = 10,
-    three_prime_clip_r1: int = 10,
-    three_prime_clip_r2: int = 10,
-    nextseq_trim: int = 0,
-    # Bismark options
-    num_mismatches: float = 0.6,
-    meth_cutoff: Optional[int] = None,
-    no_overlap: bool = True,
-    ignore_r1: Optional[int] = None,
-    ignore_r2: int = 2,
-    ignore_3prime_r1: Optional[int] = None,
-    ignore_3prime_r2: int = 2,
-    # Reference Genome
-    latch_genome: Reference_Type = Reference_Type.homo_sapiens,
-    genome: Genome = Genome.hg38,
-    aligner: Aligner = Aligner.bismark,
-) -> None:
-    """
-    nf-core/methylseq
-
-    Sample Description
-    """
-
-    pvc_name: str = initialize()
-    nextflow_runtime(
-        pvc_name=pvc_name,
-        run_name=run_name,
-        input=input,
-        outdir=outdir,
-        email=email,
-        multiqc_title=multiqc_title,
-        genome_source=genome_source,
-        latch_genome=latch_genome,
-        genome=genome,
-        fasta=fasta,
-        fasta_index=fasta_index,
-        bismark_index=bismark_index,
-        bwa_meth_index=bwa_meth_index,
-        aligner=aligner,
-        comprehensive=comprehensive,
-        non_directional=non_directional,
-        cytosine_report=cytosine_report,
-        pbat=pbat,
-        rrbs=rrbs,
-        slamseq=slamseq,
-        em_seq=em_seq,
-        single_cell=single_cell,
-        accel=accel,
-        cegx=cegx,
-        epignome=epignome,
-        zymo=zymo,
-        save_reference=save_reference,
-        save_align_intermeds=save_align_intermeds,
-        unmapped=unmapped,
-        save_trimmed=save_trimmed,
-        clip_r1=clip_r1,
-        clip_r2=clip_r2,
-        three_prime_clip_r1=three_prime_clip_r1,
-        three_prime_clip_r2=three_prime_clip_r2,
-        nextseq_trim=nextseq_trim,
-        relax_mismatches=relax_mismatches,
-        num_mismatches=num_mismatches,
-        meth_cutoff=meth_cutoff,
-        no_overlap=no_overlap,
-        ignore_r1=ignore_r1,
-        ignore_r2=ignore_r2,
-        ignore_3prime_r1=ignore_3prime_r1,
-        ignore_3prime_r2=ignore_3prime_r2,
-        known_splices=known_splices,
-        local_alignment=local_alignment,
-        minins=minins,
-        maxins=maxins,
-        nomeseq=nomeseq,
-        min_depth=min_depth,
-        ignore_flags=ignore_flags,
-        methyl_kit=methyl_kit,
-        bamqc_regions_file=bamqc_regions_file,
-        skip_trimming=skip_trimming,
-        skip_deduplication=skip_deduplication,
-        skip_multiqc=skip_multiqc,
-        multiqc_methods_description=multiqc_methods_description,
-    )
