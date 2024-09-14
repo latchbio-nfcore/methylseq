@@ -7,8 +7,10 @@ process SAMTOOLS_FAIDX {
         'https://depot.galaxyproject.org/singularity/samtools:1.17--h00cdaf9_0' :
         'biocontainers/samtools:1.17--h00cdaf9_0' }"
 
+    // TAHIR changed from issue https://github.com/nf-core/methylseq/issues/352
     input:
-    tuple val(meta), path(fasta)
+    val(meta)
+    path(fasta)
 
     output:
     tuple val(meta), path ("*.fai"), emit: fai

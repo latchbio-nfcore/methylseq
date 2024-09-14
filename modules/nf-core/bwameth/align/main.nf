@@ -30,6 +30,11 @@ process BWAMETH_ALIGN {
     # See https://github.com/nf-core/methylseq/pull/217
     touch -c -- *
 
+    # Modify the timestamps of all files in the index directory
+    # Changed by Tahir based on https://github.com/nf-core/methylseq/issues/353
+    touch -c -- ${index}/*
+    find ${index} -type f -exec touch {} +
+
     bwameth.py \\
         $args \\
         $read_group \\
