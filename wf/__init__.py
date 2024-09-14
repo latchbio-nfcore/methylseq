@@ -1,6 +1,5 @@
-from typing import Annotated, List, Optional
+from typing import List, Optional
 
-from flytekit.core.annotation import FlyteAnnotation
 from latch.resources.launch_plan import LaunchPlan
 from latch.resources.workflow import workflow
 from latch.types import metadata
@@ -20,19 +19,7 @@ from wf.entrypoint import (
 @workflow(metadata._nextflow_metadata)
 def nf_nf_core_methylseq(
     input: List[Sample],
-    run_name: Annotated[
-        str,
-        FlyteAnnotation(
-            {
-                "rules": [
-                    {
-                        "regex": r"^[a-zA-Z0-9_-]+$",
-                        "message": "ID name must contain only letters, digits, underscores, and dashes. No spaces are allowed.",
-                    }
-                ],
-            }
-        ),
-    ],
+    run_name: str,
     genome_source: str,
     genome: Optional[Genome],
     email: Optional[str],
