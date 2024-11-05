@@ -4,6 +4,7 @@
 
 include { UNTAR                       } from '../../modules/nf-core/untar/main'
 include { BISMARK_GENOMEPREPARATION   } from '../../modules/nf-core/bismark/genomepreparation/main'
+include { ARIOC_GENOMEPREPARATION } from '../../modules/nf-core/AriocP/genomepreparation/main'
 include { BWAMETH_INDEX               } from '../../modules/nf-core/bwameth/index/main'
 include { SAMTOOLS_FAIDX              } from '../../modules/nf-core/samtools/faidx/main'
 
@@ -40,6 +41,20 @@ workflow PREPARE_GENOME {
         }
 
     }
+    //Aligner: GPU based Arioc
+    else if (params.aligner == 'arioc'){
+        if (params.arioc_index) {
+            if (params.arioc_index.endsWith('.gz')){
+                ch_arioc_index = UNTAR ( [ [:], file(params.arioc_index) ] ).untar.map { it[1] }
+            } else {
+                ch_arioc_index = Channel.value(file(params.arioc_index))
+            }
+        } else{
+            ARIOC_GENOMEPREPARATION(ch_fasta)
+            ch_arioc_index = ARIOC_GENOMEPREPARATION.out.index
+            ch_versions = ch_versions.mix(ARIOC_GENOMEPREPARATION.out.versions)
+        }
+    }
     // Aligner: bwameth
     else if ( params.aligner == 'bwameth' ){
 
@@ -70,12 +85,14 @@ workflow PREPARE_GENOME {
             ch_fasta_index = SAMTOOLS_FAIDX.out.fai.map{ return(it[1])}
             ch_versions = ch_versions.mix(SAMTOOLS_FAIDX.out.versions)
         }
+
     }
 
     emit:
     fasta         = ch_fasta                  // channel: path(genome.fasta)
     bismark_index = ch_bismark_index          // channel: path(genome.fasta)
     bwameth_index = ch_bwameth_index          // channel: path(genome.fasta)
+    arioc_index = ch_arioc_index
     fasta_index   = ch_fasta_index            // channel: path(genome.fasta)
     versions      = ch_versions.ifEmpty(null) // channel: [ versions.yml ]
 

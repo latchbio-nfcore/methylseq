@@ -28,6 +28,7 @@ def nf_nf_core_methylseq(
     fasta_index: Optional[LatchFile],
     bismark_index: Optional[LatchDir],
     bwa_meth_index: Optional[LatchDir],
+    arioc_index: Optional[LatchDir],
     # Alignment
     comprehensive: bool,
     non_directional: bool,
@@ -201,6 +202,7 @@ def nf_nf_core_methylseq(
         fasta_index=fasta_index,
         bismark_index=bismark_index,
         bwa_meth_index=bwa_meth_index,
+        arioc_index=arioc_index,
         aligner=aligner,
         comprehensive=comprehensive,
         non_directional=non_directional,

@@ -39,6 +39,7 @@ class Aligner(Enum):
     bismark = "bismark"
     # bismark_hisat = "bismark_hisat"
     bwameth = "bwameth"
+    arioc = "arioc"
 
 
 flow = [
@@ -66,6 +67,7 @@ flow = [
                     "fasta_index",
                     "bismark_index",
                     "bwa_meth_index",
+                    "arioc_index",
                 ),
                 Spoiler(
                     "Additional options",
@@ -240,6 +242,12 @@ generated_parameters = {
         default=None,
         display_name="Bismark Index",
         description="Directory containing a Bismark reference index.",
+    ),
+    "arioc_index": NextflowParameter(
+        type=Optional[LatchDir],
+        default=None,
+        display_name="Arioc Index",
+        description="Directory containing a Arioc reference index.",
     ),
     "bwa_meth_index": NextflowParameter(
         type=Optional[str],
