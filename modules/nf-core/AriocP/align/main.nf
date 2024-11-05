@@ -67,7 +67,10 @@ process ARIOC_ALIGN {
     }*/
 
     """
-    python /app/AriocP_Align.py ${reads[0]} ${reads[1]} ${index}
+    python /app/AriocP_Align.py ${reads[0]} ${reads[1]} ${index} \
+                                --vt 250 --match 2 --gap_open -5 \
+                                --mismatch -6 --gap_extend -3 \
+                                --batchsize 1k --seed_depth 2 --max_j 18
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
