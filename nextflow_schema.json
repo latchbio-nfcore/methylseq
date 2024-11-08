@@ -118,6 +118,12 @@
                     "description": "Path to a directory containing a Bismark reference index.",
                     "fa_icon": "fas fa-dot-circle"
                 },
+                "arioc_index": {
+                    "type": "string",
+                    "format": "path",
+                    "description": "Path to a directory containing a ARIOC reference index.",
+                    "fa_icon": "fas fa-dot-circle"
+                },
                 "bwa_meth_index": {
                     "type": "string",
                     "format": "path",
@@ -152,7 +158,7 @@
                     "default": "bismark",
                     "description": "Alignment tool to use.",
                     "fa_icon": "fas fa-dot-circle",
-                    "enum": ["bismark", "bismark_hisat", "bwameth"],
+                    "enum": ["bismark", "bismark_hisat", "bwameth", "arioc"],
                     "help_text": "The nf-core/methylseq package is actually two pipelines in one. The default workflow uses [Bismark](http://www.bioinformatics.babraham.ac.uk/projects/bismark/) with [Bowtie2](http://bowtie-bio.sourceforge.net/bowtie2/index.shtml) as alignment tool: unless specified otherwise, nf-core/methylseq will run this pipeline.\n\nSince bismark v0.21.0 it is also possible to use [HISAT2](https://ccb.jhu.edu/software/hisat2/index.shtml) as alignment tool. To run this workflow, invoke the pipeline with the command line flag `--aligner bismark_hisat`. HISAT2 also supports splice-aware alignment if analysis of RNA is desired (e.g. [SLAMseq](https://science.sciencemag.org/content/360/6390/800) experiments), a file containing a list of known splicesites can be provided with `--known_splices`.\n\nThe second workflow uses [BWA-Meth](https://github.com/brentp/bwa-meth) and [MethylDackel](https://github.com/dpryan79/methyldackel) instead of Bismark. To run this workflow, run the pipeline with the command line flag `--aligner bwameth`."
                 },
                 "comprehensive": {
@@ -522,6 +528,63 @@
                     "pattern": "^(\\d+\\.?\\s*(s|m|h|d|day)\\s*)+$",
                     "hidden": true,
                     "help_text": "Use to set an upper-limit for the time requirement for each process. Should be a string in the format integer-unit e.g. `--max_time '2.h'`"
+                }
+            }
+        },
+        "arioc_options":{
+            "title": "Arioc Options",
+            "type": "object",
+            "fa_icon": "fas fa-file-import",
+            "description": "Less common options for the pipeline, typically set in a config file.",
+            "help_text": "These options are common to all nf-core pipelines and allow you to customise some of the core preferences for how the pipeline runs.\n\nTypically these options would be set in a Nextflow config file loaded for all pipeline runs, such as `~/.nextflow/config`.",
+            "properties":{
+                "vt": {
+                    "type": "string",
+                    "description": "Minimum ARIOCP alignment score to report",
+                    "fa_icon": "fas fa-question-circle",
+                    "hidden": true
+                },
+                "match_score": {
+                    "type": "integer",
+                    "description":"Match Score",
+                    "fa_icon": "fas fa-question-circle",
+                    "hidden": true
+                },
+                "mismatch_penalty": {
+                    "type": "integer",
+                    "description":"Mismatch penalty",
+                    "fa_icon": "fas fa-question-circle",
+                    "hidden": true
+                },
+                "gap_open_penalty": {
+                    "type": "integer",
+                    "description":"Gap Open Penalty",
+                    "fa_icon": "fas fa-question-circle",
+                    "hidden": true
+                },
+                "gap_extend_penalty":{
+                    "type": "integer",
+                    "description":"Gap Extend Penalty",
+                    "fa_icon": "fas fa-question-circle",
+                    "hidden": true
+                },
+                "seedDepth": {
+                    "type": "integer",
+                    "description":"Seed Depth",
+                    "fa_icon": "fas fa-question-circle",
+                    "hidden": true
+                },
+                "batchsize":{
+                    "type": "integer",
+                    "description":"Batch Size",
+                    "fa_icon": "fas fa-question-circle",
+                    "hidden": true
+                },
+                "max_j":{
+                    "type": "integer",
+                    "description":"maxJ",
+                    "fa_icon": "fas fa-question-circle",
+                    "hidden": true
                 }
             }
         },

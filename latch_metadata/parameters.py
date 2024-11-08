@@ -8,6 +8,7 @@ from latch.types.metadata import (
     Fork,
     ForkBranch,
     LatchRule,
+    Multiselect,
     NextflowParameter,
     Params,
     Section,
@@ -39,6 +40,7 @@ class Aligner(Enum):
     bismark = "bismark"
     # bismark_hisat = "bismark_hisat"
     bwameth = "bwameth"
+    arioc = "arioc"
 
 
 flow = [
@@ -66,6 +68,7 @@ flow = [
                     "fasta_index",
                     "bismark_index",
                     "bwa_meth_index",
+                    "arioc_index",
                 ),
                 Spoiler(
                     "Additional options",
@@ -141,6 +144,19 @@ flow = [
                 "min_depth",
                 "ignore_flags",
                 "methyl_kit",
+            ),
+        ),
+        Spoiler(
+            "ARIOC(GPU Aligner) Options",
+            Params(
+                "vt",
+                "match_score",
+                "mismatch_penalty",
+                "gap_open_penalty",
+                "gap_extend_penalty",
+                "seedDepth",
+                "batchsize",
+                "max_j",
             ),
         ),
         Spoiler(
@@ -240,6 +256,12 @@ generated_parameters = {
         default=None,
         display_name="Bismark Index",
         description="Directory containing a Bismark reference index.",
+    ),
+    "arioc_index": NextflowParameter(
+        type=Optional[LatchDir],
+        default=None,
+        display_name="Arioc Index",
+        description="Directory containing a Arioc reference index.",
     ),
     "bwa_meth_index": NextflowParameter(
         type=Optional[str],
@@ -503,5 +525,51 @@ generated_parameters = {
         type=Optional[str],
         display_name="MultiQC Methods Description",
         description="Custom MultiQC yaml file containing HTML including a methods description.",
+    ),
+    "vt": NextflowParameter(
+        type=str,
+        default="250",
+        display_name="Min Alignment Score to Report",
+        description="Minimum reportable alignment score",
+    ),
+    "match_score": NextflowParameter(
+        type=int,
+        default=2,
+        display_name="Match Score",
+        description="Match Score used by the Smith Waterman Alignment Algorithm",
+    ),
+    "mismatch_penalty": NextflowParameter(
+        type=int,
+        default=-6,
+        display_name="Mismatch Penalty",
+        description="Mismatch penalty used by the Smith Waterman Alignment Algorithm",
+    ),
+    "gap_open_penalty": NextflowParameter(
+        type=int,
+        default=-5,
+        display_name="Gap Open Penalty",
+        description="Gap open penalty used by the Smith Waterman Alignment Algorithm",
+    ),
+    "gap_extend_penalty": NextflowParameter(
+        type=int,
+        default=-3,
+        display_name="Gap Extend Penalty",
+        description="Mismatch penalty used by the Smith Waterman Alignment Algorithm",
+    ),
+    "seedDepth": NextflowParameter(
+        type=int,
+        default=2,
+        appearance_type=Multiselect([1, 2, 3, 4, 5, 6], allow_custom=False),
+        display_name="Seed depth",
+        description="Limits the number of seed iterations",
+    ),
+    "batchsize": NextflowParameter(
+        type=int, default=1000, display_name="Batch size", description="Batch Size"
+    ),
+    "max_j": NextflowParameter(
+        type=int,
+        default=18,
+        display_name="max J",
+        description="Per-seed maximum number of reference-genome locations at which to compute gapped alignments ",
     ),
 }

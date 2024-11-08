@@ -45,6 +45,9 @@ if( params.aligner =~ /bismark/ ){
 else if ( params.aligner == 'bwameth' ){
     include { BWAMETH } from '../subworkflows/local/bwameth'
 }
+else if ( params.aligner == 'arioc' ){
+    include { ARIOC } from '../subworkflows/local/arioc'
+}
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -166,6 +169,32 @@ workflow METHYLSEQ {
         ch_dedup = BISMARK.out.dedup
         ch_aligner_mqc = BISMARK.out.mqc
     }
+
+    if( params.aligner =~ 'arioc' ){
+
+        /*
+         * Run arioc alignment + downstream processing
+         */
+        ARIOC (
+            reads,
+            PREPARE_GENOME.out.arioc_index,
+            params.skip_deduplication || params.rrbs,
+            params.cytosine_report || params.nomeseq,
+            params.vt,
+            params.match_score,
+            params.mismatch_penalty,
+            params.gap_open_penalty,
+            params.gap_extend_penalty,
+            params.seedDepth,
+            params.batchsize,
+            params.max_j
+        )
+        ch_versions = ch_versions.mix(ARIOC.out.versions.unique{ it.baseName })
+        ch_bam = ARIOC.out.bam
+        ch_dedup = ARIOC.out.dedup
+        ch_aligner_mqc = ARIOC.out.mqc
+    }
+
     // Aligner: bwameth
     else if ( params.aligner == 'bwameth' ){
 

@@ -65,6 +65,7 @@ class Aligner(Enum):
     bismark = "bismark"
     # bismark_hisat = "bismark_hisat"
     bwameth = "bwameth"
+    arioc = "arioc"
 
 
 @custom_task(cpu=0.25, memory=0.5, storage_gib=1)
@@ -79,10 +80,10 @@ def initialize(run_name: str) -> str:
 
     print("Provisioning shared storage volume... ", end="")
     resp = requests.post(
-        "http://nf-dispatcher-service.flyte.svc.cluster.local/provision-storage",
+        "http://nf-dispatcher-service.flyte.svc.cluster.local/provision-storage",  # provision-storage-ofs
         headers=headers,
         json={
-            "storage_expiration_hours": 0,
+            "storage_expiration_hours": 7,
             "version": 2,
         },
     )
@@ -92,7 +93,7 @@ def initialize(run_name: str) -> str:
     return resp.json()["name"]
 
 
-@nextflow_runtime_task(cpu=4, memory=8, storage_gib=100)
+@nextflow_runtime_task(cpu=4, memory=8, storage_gib=250)
 def nextflow_runtime(
     pvc_name: str,
     run_name: str,
@@ -108,6 +109,7 @@ def nextflow_runtime(
     fasta_index: Optional[LatchFile],
     bismark_index: Optional[LatchDir],
     bwa_meth_index: Optional[LatchDir],
+    arioc_index: Optional[LatchDir],
     # Alignment
     aligner: Aligner,
     comprehensive: bool,
@@ -158,6 +160,14 @@ def nextflow_runtime(
     skip_trimming: bool,
     skip_deduplication: bool,
     skip_multiqc: bool,
+    vt: str,
+    match_score: int,
+    mismatch_penalty: int,
+    gap_open_penalty: int,
+    gap_extend_penalty: int,
+    seedDepth: int,
+    batchsize: int,
+    max_j: int,
     # Additional option
     multiqc_methods_description: Optional[str],
 ) -> None:
@@ -207,6 +217,7 @@ def nextflow_runtime(
         *get_flag("fasta_index", fasta_index),
         *get_flag("bismark_index", bismark_index),
         *get_flag("bwa_meth_index", bwa_meth_index),
+        *get_flag("arioc_index", arioc_index),
         # Alignment
         *get_flag("aligner", aligner),
         *get_flag("comprehensive", comprehensive),
@@ -258,6 +269,14 @@ def nextflow_runtime(
         *get_flag("skip_deduplication", skip_deduplication),
         *get_flag("skip_multiqc", skip_multiqc),
         # Additional option
+        *get_flag("vt", vt),
+        *get_flag("match_score", match_score),
+        *get_flag("mismatch_penalty", mismatch_penalty),
+        *get_flag("gap_open_penalty", gap_open_penalty),
+        *get_flag("gap_extend_penalty", gap_extend_penalty),
+        *get_flag("seedDepth", seedDepth),
+        *get_flag("batchsize", batchsize),
+        *get_flag("max_j", max_j),
         *get_flag("multiqc_methods_description", multiqc_methods_description),
     ]
 
