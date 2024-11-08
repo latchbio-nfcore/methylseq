@@ -83,6 +83,14 @@ def nf_nf_core_methylseq(
     # Reference Genome
     latch_genome: Reference_Type = Reference_Type.homo_sapiens,
     aligner: Aligner = Aligner.bismark,
+    vt: str = "275",
+    match_score: int = 2,
+    mismatch_penalty: int = -6,
+    gap_open_penalty: int = -5,
+    gap_extend_penalty: int = -3,
+    seedDepth: int = 2,
+    batchsize: int = 1000,
+    max_j: int = 16,
     outdir: LatchOutputDir = LatchOutputDir("latch:///Methylseq"),
 ) -> None:
     """
@@ -245,6 +253,14 @@ def nf_nf_core_methylseq(
         skip_trimming=skip_trimming,
         skip_deduplication=skip_deduplication,
         skip_multiqc=skip_multiqc,
+        vt=vt,
+        match_score=match_score,
+        mismatch_penalty=mismatch_penalty,
+        gap_open_penalty=gap_open_penalty,
+        gap_extend_penalty=gap_extend_penalty,
+        seedDepth=seedDepth,
+        batchsize=batchsize,
+        max_j=max_j,
         multiqc_methods_description=multiqc_methods_description,
     )
 

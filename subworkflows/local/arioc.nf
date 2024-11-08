@@ -16,6 +16,14 @@ workflow ARIOC {
     arioc_index      // channel: /path/to/BismarkIndex/
     skip_deduplication // boolean: whether to deduplicate alignments
     cytosine_report    // boolean: whether the run coverage2cytosine
+    vt
+    match_score
+    mismatch_penalty
+    gap_open_penalty
+    gap_extend_penalty
+    seedDepth
+    batchsize
+    max_j
 
     main:
     versions = Channel.empty()
@@ -26,7 +34,15 @@ workflow ARIOC {
      */
     ARIOC_ALIGN (
         reads,
-        arioc_index
+        arioc_index,
+        vt,
+        match_score,
+        mismatch_penalty,
+        gap_open_penalty,
+        gap_extend_penalty,
+        seedDepth,
+        batchsize,
+        max_j,
     )
     versions = versions.mix(ARIOC_ALIGN.out.versions)
 

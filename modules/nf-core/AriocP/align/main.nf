@@ -11,6 +11,14 @@ process ARIOC_ALIGN {
     input:
     tuple val(meta), path(reads)
     path index
+    val vt
+    val match_score
+    val mismatch_penalty
+    val gap_open_penalty
+    val gap_extend_penalty
+    val seedDepth
+    val batchsize
+    val max_j
 
     output:
     tuple val(meta), path("*bam")       , emit: bam
@@ -28,49 +36,12 @@ process ARIOC_ALIGN {
     }
     def fastq = meta.single_end ? reads : "-1 ${reads[0]} -2 ${reads[1]}"
 
-    // Try to assign sensible bismark --multicore if not already set
-    /*if(!args.contains('--multicore') && task.cpus){
-
-        // Numbers based on recommendation by Felix for a typical mouse genome
-        def ccore = 1
-        def cpu_per_multicore = 3
-        def mem_per_multicore = (13.GB).toBytes()
-        if(args.contains('--non_directional')){
-            cpu_per_multicore = 5
-            mem_per_multicore = (18.GB).toBytes()
-        }
-
-        // How many multicore splits can we afford with the cpus we have?
-        ccore = ((task.cpus as int) / cpu_per_multicore) as int
-
-        // Check that we have enough memory
-        try {
-            def tmem = (task.memory as nextflow.util.MemoryUnit).toBytes()
-            def mcore = (tmem / mem_per_multicore) as int
-            ccore = Math.min(ccore, mcore)
-        } catch (all) {
-            log.warn "Not able to define bismark align multicore based on available memory"
-        }
-        if(ccore > 1){
-            args += " --multicore ${ccore}"
-        }
-        bismark \\
-        $fastq \\
-        --genome $index \\
-        --bam \\
-        $args
-
-        cat <<-END_VERSIONS > versions.yml
-        "${task.process}":
-            bismark: \$(echo \$(bismark -v 2>&1) | sed 's/^.*Bismark Version: v//; s/Copyright.*\$//')
-        END_VERSIONS
-    }*/
 
     """
     python /app/AriocP_Align.py ${reads[0]} ${reads[1]} ${index} \
-                                --vt 250 --match 2 --gap_open -5 \
-                                --mismatch -6 --gap_extend -3 \
-                                --batchsize 1k --seed_depth 2 --max_j 18
+                                --vt ${vt} --match ${match_score} --gap_open ${gap_open_penalty} \
+                                --mismatch ${mismatch_penalty} --gap_extend ${gap_extend_penalty} \
+                                --batchsize ${batchsize} --seed_depth ${seedDepth} --max_j ${max_j}
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":

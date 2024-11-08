@@ -179,7 +179,15 @@ workflow METHYLSEQ {
             reads,
             PREPARE_GENOME.out.arioc_index,
             params.skip_deduplication || params.rrbs,
-            params.cytosine_report || params.nomeseq
+            params.cytosine_report || params.nomeseq,
+            params.vt,
+            params.match_score,
+            params.mismatch_penalty,
+            params.gap_open_penalty,
+            params.gap_extend_penalty,
+            params.seedDepth,
+            params.batchsize,
+            params.max_j
         )
         ch_versions = ch_versions.mix(ARIOC.out.versions.unique{ it.baseName })
         ch_bam = ARIOC.out.bam

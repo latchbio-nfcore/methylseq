@@ -531,6 +531,63 @@
                 }
             }
         },
+        "arioc_options":{
+            "title": "Arioc Options",
+            "type": "object",
+            "fa_icon": "fas fa-file-import",
+            "description": "Less common options for the pipeline, typically set in a config file.",
+            "help_text": "These options are common to all nf-core pipelines and allow you to customise some of the core preferences for how the pipeline runs.\n\nTypically these options would be set in a Nextflow config file loaded for all pipeline runs, such as `~/.nextflow/config`.",
+            "properties":{
+                "vt": {
+                    "type": "string",
+                    "description": "Minimum ARIOCP alignment score to report",
+                    "fa_icon": "fas fa-question-circle",
+                    "hidden": true
+                },
+                "match_score": {
+                    "type": "integer",
+                    "description":"Match Score",
+                    "fa_icon": "fas fa-question-circle",
+                    "hidden": true
+                },
+                "mismatch_penalty": {
+                    "type": "integer",
+                    "description":"Mismatch penalty",
+                    "fa_icon": "fas fa-question-circle",
+                    "hidden": true
+                },
+                "gap_open_penalty": {
+                    "type": "integer",
+                    "description":"Gap Open Penalty",
+                    "fa_icon": "fas fa-question-circle",
+                    "hidden": true
+                },
+                "gap_extend_penalty":{
+                    "type": "integer",
+                    "description":"Gap Extend Penalty",
+                    "fa_icon": "fas fa-question-circle",
+                    "hidden": true
+                },
+                "seedDepth": {
+                    "type": "integer",
+                    "description":"Seed Depth",
+                    "fa_icon": "fas fa-question-circle",
+                    "hidden": true
+                },
+                "batchsize":{
+                    "type": "integer",
+                    "description":"Batch Size",
+                    "fa_icon": "fas fa-question-circle",
+                    "hidden": true
+                },
+                "max_j":{
+                    "type": "integer",
+                    "description":"maxJ",
+                    "fa_icon": "fas fa-question-circle",
+                    "hidden": true
+                }
+            }
+        },
         "generic_options": {
             "title": "Generic options",
             "type": "object",
